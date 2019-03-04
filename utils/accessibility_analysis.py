@@ -13,7 +13,7 @@ from pandana.loaders import osm
 ## PANDANA ACCESSIBILITY ##
 ###########################
 
-def get_pandana_network(osm_bbox, impedance=5000):
+def get_pandana_network(osm_bbox, impedance=5000, lcn_cutoff=True):
     """
     Utility function to get pandana nodes within analysis bounding box
      - Function also filters out poorly connected nodes. Still uncertain
@@ -46,8 +46,11 @@ def get_pandana_network(osm_bbox, impedance=5000):
 
         # identify nodes that are connected to fewer than some threshold
         # of other nodes within a given distance
-        lcn = network.low_connectivity_nodes(impedance, count=10, imp_name='distance')
-        network.save_hdf5(net_filename, rm_nodes=lcn)
+        if lcn_cutoff:
+            lcn = network.low_connectivity_nodes(impedance, count=10, imp_name='distance')
+            network.save_hdf5(net_filename, rm_nodes=lcn)
+        else:
+            network.save_hdf5(net_filename)
 
 
     return network
