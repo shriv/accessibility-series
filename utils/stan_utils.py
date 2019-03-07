@@ -3,6 +3,8 @@ import pystan
 import os
 import pandas as pd
 import utils.data_processing as dp
+import matplotlib.pyplot as plt
+
 
 def save(obj, filename):
     """Save compiled models for reuse."""
@@ -57,11 +59,13 @@ def run_plot_suburb_stan(df, model, suburb_name='Karori'):
 
     # Plot model posterior predictive against raw values
     fig, (ax1, ax2) = plt.subplots(ncols=2, sharex=True, sharey=True, figsize=(8,6))
-    ax1.hist(tearo_trunc_fit['y_pred'], bins=100, density=True);
-    ax1.set_title('Model accessibility values for %s'.format(suburb_name));
+    ax1.hist(suburb_trunc_fit['y_pred'], bins=100, density=True);
+    ax1.set_title('Model accessibility values for {:s}'.format(suburb_name));
 
-    ax2.hist(tearo['accessibility'], bins=100, density=True);
-    ax2.set_title('Raw accessibility values for %s'.format(suburb_name));
+    ax2.hist(suburb_df['accessibility'], bins=100, density=True);
+    ax2.set_title('Raw accessibility values for {:s}'.format(suburb_name));
+
+    plt.xlim(0,80)
     return
 
 
