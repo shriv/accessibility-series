@@ -4,6 +4,15 @@ import os
 import ast
 from shapely.geometry import Point
 import geopandas
+import osmnx as ox
+import utils.util as ut
+
+########################
+##  GLOBAL PARAMETERS ##
+########################
+
+toblers = [6.0, 3.5, 0.05]
+brunsdon = [3.557, 2.03, 0.13]
 
 
 ########################
@@ -18,6 +27,14 @@ def convert_list_string(list_string):
     """
     # list_unicode_string =  list_string.decode("utf-8")
     return ast.literal_eval(str(list_string))
+
+
+def replace_categorical_with_int(df, level):
+    level_values = df[level].unique()
+    level_lookup = dict(zip(level_values, range(len(level_values))))
+    level_lookup_df = pd.DataFrame({'level_id': level_lookup.values(),
+                                    'level': level_lookup.keys()})
+    return level_lookup
 
 
 ##############
@@ -98,6 +115,45 @@ def get_osm_data(compactOverpassQLstring, osm_bbox):
         osm_df = pd.DataFrame(osmdata)
     return osm_df
 
+
+def separate_elevation_graph_by_direction(G):
+    """
+    """
+
+    # Break graph
+    G_undir = G.to_undirected()
+    graph_undir_df = ox.graph_to_gdfs(G_undir)
+    nodes_gdfs_undir = graph_undir_df[0]
+    edges_gdfs_undir = graph_undir_df[1]
+
+    # Create the inverted graph
+    edges_gdfs_undir_inv = edges_gdfs_undir.copy()
+    edges_gdfs_undir_inv['u'] = edges_gdfs_undir['v']
+    edges_gdfs_undir_inv['v'] = edges_gdfs_undir['u']
+    edges_gdfs_undir_inv['grade'] = -edges_gdfs_undir['grade']
+
+    # Add the travel times
+    edges_gdfs_undir['time_5khr'] = ut.flat_travel_time(edges_gdfs_undir['length'])
+    edges_gdfs_undir['time_tobler'] = ut.hiking_time(edges_gdfs_undir['grade'],
+                                                     edges_gdfs_undir['length'],
+                                                     params_list=toblers)
+    edges_gdfs_undir_inv['time_tobler'] = ut.hiking_time(edges_gdfs_undir_inv['grade'],
+                                                         edges_gdfs_undir_inv['length'],
+                                                         params_list=toblers)
+
+    # Create the expected indices for pandana edges
+    edges_gdfs_undir['from_idx'] = edges_gdfs_undir['u']
+    edges_gdfs_undir['to_idx'] = edges_gdfs_undir['v']
+    edges_gdfs_undir= edges_gdfs_undir.set_index(['from_idx', 'to_idx'])
+    edges_gdfs_undir.index.names= ['','']
+
+    # Create the expected indices for pandana edges: for the inverse
+    edges_gdfs_undir_inv['from_idx'] = edges_gdfs_undir_inv['u']
+    edges_gdfs_undir_inv['to_idx'] = edges_gdfs_undir_inv['v']
+    edges_gdfs_undir_inv= edges_gdfs_undir_inv.set_index(['from_idx', 'to_idx'])
+    edges_gdfs_undir_inv.index.names= ['','']
+
+    return edges_gdfs_undir_inv, edges_gdfs_undir, nodes_gdfs_undir
 
 
 ##########################
