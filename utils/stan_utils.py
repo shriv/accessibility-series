@@ -4,7 +4,8 @@ import os
 import pandas as pd
 import utils.data_processing as dp
 import matplotlib.pyplot as plt
-
+import numpy as np
+import seaborn as sns
 
 def save(obj, filename):
     """Save compiled models for reuse."""
@@ -33,6 +34,18 @@ def load_or_generate_stan_model(model_folder,
         with open(pkl_file, 'wb') as f:
             pickle.dump(sm, f)
     return sm
+
+
+# Generate mapping from sizechart name to ID
+def convert_categorical_to_ID(df, level):
+    level_values = df[level].unique()
+    level_lookup = dict(zip(level_values, range(len(level_values))))
+    level_lookup_df = pd.DataFrame({'level_id': level_lookup.values(),
+                                    'level': level_lookup.keys()})
+
+    new_col = level+'_id'
+    level = df[new_col] = df[level].replace(level_lookup).values
+    return df
 
 
 def run_plot_suburb_stan(df, model, suburb_name='Karori'):
@@ -90,7 +103,7 @@ def train_acc_hierarchical(df, normal_model, level='suburb',
                      .size()
                      .reset_index(name='samples')))
 
-    # Do the Training
+    # Run the model
     partial_pool_data = {'N': len(df),
                          'level': level+1, # Stan counts starting at 1,
                          'L': len(level_values),
@@ -109,3 +122,41 @@ def train_acc_hierarchical(df, normal_model, level='suburb',
         return {'stanfit': partial_pool_fit,
                 'level_id': level_lookup.values(),
                 'level_lookup': level_lookup.keys()}
+
+
+def df_for_forestplot(stanfit, df,  param_to_plot, param_categorical):
+    # Generate summary for parameter of interest
+    summ = stanfit.summary([param_to_plot])
+    summ_df = pd.DataFrame(summ['summary'],
+                       columns=(u'mean', u'se_mean', u'sd', u'hpd_2.5',u'hpd_25',
+                                u'hpd_50',u'hpd_75',u'hpd_97.5',u'n_eff',u'Rhat'),
+                       index=summ['summary_rownames']).reset_index()
+    # summ_df = summ_df.sort_values('mean')
+    summ_df['ypos'] = np.arange(len(summ_df))
+
+    # Map ID to plot
+    summ_df = pd.merge(summ_df,
+                   (df[[param_categorical.split('_id')[0], param_categorical]]
+                    .drop_duplicates().rename(columns={param_categorical: 'ypos'})))
+    return summ_df
+
+
+def custom_forestplot(df, param_categorical,
+                      size=8, aspect=0.8, facetby=None,
+                      avg_min=None, avg_max=None):
+    ''' Conv fn: plot features from Fit summary using seaborn
+        Facet on sets of forests for comparison
+        Borrowed from http://blog.applied.ai/bayesian-inference-with-pymc3-part-3/'''
+
+    g = sns.FacetGrid(col=facetby, hue='mean', data=df, palette='RdBu_r'
+                      ,size=size, aspect=aspect)
+    _ = g.map(plt.scatter, 'mean', param_categorical
+                ,marker='o', s=100, edgecolor='#333333', linewidth=0.8, zorder=10)
+    _ = g.map(plt.hlines, param_categorical, 'hpd_2.5','hpd_97.5', color='#aaaaaa')
+
+    _ = g.axes.flat[0].set_ylabel(param_categorical)
+    _ = [ax.set_xlabel('coeff value') for ax in g.axes.flat]
+    _ = g.axes.flat[0].set_yticklabels(df[param_categorical])
+    if avg_min is not None:
+        plt.axvspan(avg_min, avg_max, alpha=0.1, color='black')
+    return

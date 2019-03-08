@@ -1,5 +1,6 @@
 /*
 * Univariate normal with single level hierarchy
+* Has lower bound truncation
 */
 data {
   int<lower=0> N;                       // number of obs
