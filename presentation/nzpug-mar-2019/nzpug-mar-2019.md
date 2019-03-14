@@ -328,7 +328,7 @@ Just to make life confusing, there are several definitions of accessibility. For
 
 ## Resources
 - Write up on https://shriv.github.io
-- Code in https://github.com/shriv
+- Code in https://github.com/shriv/accessibility-series/
 
 ## Image Credits
 \tiny
