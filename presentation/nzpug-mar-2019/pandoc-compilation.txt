@@ -1,0 +1,1 @@
+pandoc --to=beamer -s --highlight-style kate -fmarkdown-implicit_figures --output=nzpug-mar-2019.pdf nzpug-mar-2019.md
