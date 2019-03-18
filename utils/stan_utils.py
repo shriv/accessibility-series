@@ -48,7 +48,57 @@ def convert_categorical_to_ID(df, level):
     return df
 
 
+############################
+## SUMMARIES AND PLOTTING ##
+############################
+
+def summarise_variable(stanfit, var):
+    summ = stanfit.summary([var])
+    summ_df = pd.DataFrame(summ['summary'],
+                           columns=(u'mean', u'se_mean', u'sd',
+                                    u'hpd_2.5',u'hpd_25',
+                                    u'hpd_50',u'hpd_75',u'hpd_97.5',
+                                    u'n_eff',u'Rhat'),
+                           index=summ['summary_rownames']).reset_index()
+    return summ_df
+
+
+
 def run_plot_suburb_stan(df, model, suburb_name='Karori'):
+    """
+    Sample from lower truncated normal model for mean and sd
+    of suburban accessibility.
+    Args:
+     df: accessibility df containing suburb name
+     model: compiled and loaded Stan model
+     suburb_name=: Default of 'Karori'.
+    Returns:
+     plot of raw vs. modelled values of accessibiity
+    """
+
+    # Set up data
+    suburb_df = df[df['suburb'] == suburb_name]
+    suburb_df_dat = {'N': suburb_df.shape[0],
+                     'L': 0,
+                     'U': 80,
+                     'y': suburb_df['accessibility'].values,}
+
+    # Run Stan model for suburb
+    suburb_trunc_fit = model.sampling(suburb_df_dat, chains=4)
+
+    # Plot model posterior predictive against raw values
+    fig, (ax1, ax2) = plt.subplots(ncols=2, sharex=True, sharey=True, figsize=(8,6))
+    ax1.hist(suburb_trunc_fit['y_pred'], bins=100, density=True);
+    ax1.set_title('Model accessibility values for {:s}'.format(suburb_name));
+
+    ax2.hist(suburb_df['accessibility'], bins=100, density=True);
+    ax2.set_title('Raw accessibility values for {:s}'.format(suburb_name));
+
+    plt.xlim(0,80)
+    return
+
+
+def run_plot_suburb(df, model, suburb_name='Karori'):
     """
     Sample from lower truncated normal model for mean and sd
     of suburban accessibility.
