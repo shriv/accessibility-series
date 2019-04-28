@@ -25,6 +25,12 @@ model {
         y[n] ~ normal(mu, sigma) T[L,U];
         }
 generated quantities {
-    real y_pred;
-    y_pred = normal_lub_rng(mu, sigma, L, U);
+    vector[N] y_pred;
+    real y_pred_1;
+    for (n in 1:N){
+        y_pred[n] = normal_lub_rng(mu, sigma, L, U);
+    }
+
+    y_pred_1 = normal_lub_rng(mu, sigma, L, U);
+    
 }

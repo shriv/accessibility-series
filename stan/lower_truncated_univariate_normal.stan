@@ -23,7 +23,7 @@ parameters {
 model {
     for (n in 1:N)
         y[n] ~ normal(mu, sigma) T[L,];
-        }
+}
 generated quantities {
     real y_pred;
     y_pred = normal_lb_rng(mu, sigma, L);
