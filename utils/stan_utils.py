@@ -155,7 +155,7 @@ def train_acc_hierarchical(df, normal_model, level='suburb',
 
     # Run the model
     partial_pool_data = {'N': len(df),
-                         'level': level+1, # Stan counts starting at 1,
+                         'level': df['level_id']+1, # Stan counts starting at 1,
                          'L': len(level_values),
                          'l': 0,
                          'y': df['accessibility']}
