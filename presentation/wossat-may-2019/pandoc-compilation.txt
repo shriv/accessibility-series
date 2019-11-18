@@ -1,0 +1,1 @@
+pandoc --to=beamer -s --highlight-style kate -fmarkdown-implicit_figures --output=wossat-may-2019.pdf wossat-may-2019.md
